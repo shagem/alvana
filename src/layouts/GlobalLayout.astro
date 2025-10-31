@@ -7,7 +7,19 @@ import Footer from '../components/Footer.astro';
 const { underConstruction = true } = Astro.props;
 ---
 
-<body>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content="Alvana.io — modern web solutions coming soon." />
+    <meta name="generator" content={Astro.generator} />
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+
+</head>
+
+<section>
 
     <!-- Under Construction Message -->
     { underConstruction && 
@@ -21,5 +33,5 @@ const { underConstruction = true } = Astro.props;
     { !underConstruction && <Navbar /> }
         <slot />
     { !underConstruction && <Footer />}
-    
-</body>
+
+</section>
