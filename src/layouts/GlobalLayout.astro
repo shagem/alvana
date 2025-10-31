@@ -3,10 +3,23 @@ import '../styles/global.css';
 import { gsap } from "gsap";
 import Navbar from '../components/Navbar.astro';
 import Footer from '../components/Footer.astro';
+
+const { underConstruction = true } = Astro.props;
 ---
 
 <body>
-    <Navbar />
+
+    <!-- Under Construction Message -->
+    { underConstruction && 
+        <section class="my-40">
+            <h1 class="text-center">This site is currently under construction.  <br />Please check back soon for updates. <br />:)</h1>
+        </section>
+    }
+    <!-- End Under Construction Message -->
+
+
+    { !underConstruction && <Navbar /> }
         <slot />
-    <Footer />
+    { !underConstruction && <Footer />}
+    
 </body>
