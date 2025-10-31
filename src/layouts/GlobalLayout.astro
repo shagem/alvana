@@ -1,8 +1,12 @@
 ---
 import '../styles/global.css';
 import { gsap } from "gsap";
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/Footer.astro';
 ---
 
 <body>
-    <slot />
+    <Navbar />
+        <slot />
+    <Footer />
 </body>
