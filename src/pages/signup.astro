@@ -65,7 +65,11 @@ import GlobalLayout from '../layouts/GlobalLayout.astro';
 			return;
 		}
 
-		const { data: signUpData, error } = await supabase.auth.signUp({ email, password });
+		const { data: signUpData, error } = await supabase.auth.signUp({
+			email,
+			password,
+			options: { emailRedirectTo: `${window.location.origin}/account` },
+		});
 
 		if (error) {
 			errorEl.textContent = error.message;
