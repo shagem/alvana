@@ -27,5 +27,11 @@ Deployment_Steps
 # jetbrains setting folder
 .idea/
 
+# Claude Code local settings
+.claude/
+
+# VS Code
+.vscode/
+
 # design assets
 design_assets/
