@@ -6,12 +6,19 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "typecheck": "astro check",
+    "verify": "npm run typecheck && npm run build"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.110.5",
     "@tailwindcss/vite": "^4.1.16",
     "astro": "^5.15.3",
     "gsap": "^3.13.0",
     "tailwindcss": "^4.1.16"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "typescript": "^5.9.3"
   }
 }

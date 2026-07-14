@@ -1,0 +1,51 @@
+---
+import GlobalLayout from '../layouts/GlobalLayout.astro';
+---
+
+<head>
+	<title>My Account | Alvana.io</title>
+</head>
+
+<GlobalLayout underConstruction={false}>
+	<body>
+		<section class="max-w-sm mx-auto my-24 px-4">
+			<h1 class="text-2xl font-bold mb-6">My Account</h1>
+
+			<div id="account-loading">Loading...</div>
+
+			<div id="account-content" class="hidden flex flex-col gap-4">
+				<p><span class="font-semibold">Email:</span> <span id="account-email"></span></p>
+
+				<button id="sign-out" class="rounded px-4 py-2 text-white w-fit" style="background-color:#0072ce;">
+					Sign out
+				</button>
+			</div>
+		</section>
+	</body>
+</GlobalLayout>
+
+<script>
+	import { supabase } from '../lib/supabase';
+
+	const loadingEl = document.querySelector<HTMLDivElement>('#account-loading')!;
+	const contentEl = document.querySelector<HTMLDivElement>('#account-content')!;
+	const emailEl = document.querySelector<HTMLSpanElement>('#account-email')!;
+	const signOutBtn = document.querySelector<HTMLButtonElement>('#sign-out')!;
+
+	const {
+		data: { session },
+	} = await supabase.auth.getSession();
+
+	if (!session) {
+		window.location.href = '/login';
+	} else {
+		emailEl.textContent = session.user.email ?? '';
+		loadingEl.classList.add('hidden');
+		contentEl.classList.remove('hidden');
+	}
+
+	signOutBtn.addEventListener('click', async () => {
+		await supabase.auth.signOut();
+		window.location.href = '/';
+	});
+</script>

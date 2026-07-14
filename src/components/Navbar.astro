@@ -20,6 +20,26 @@
 
             <a>Contact</a>
 
+            <a href="/login" id="nav-login">Log In</a>
+
+            <a href="/account" id="nav-account" class="hidden">My Account</a>
+
         </div>
     </section>
 </nav>
+
+<script>
+    import { supabase } from '../lib/supabase';
+
+    const loginLink = document.querySelector<HTMLAnchorElement>('#nav-login');
+    const accountLink = document.querySelector<HTMLAnchorElement>('#nav-account');
+
+    const {
+        data: { session },
+    } = await supabase.auth.getSession();
+
+    if (session) {
+        loginLink?.classList.add('hidden');
+        accountLink?.classList.remove('hidden');
+    }
+</script>
