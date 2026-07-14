@@ -4,6 +4,7 @@ import GlobalLayout from '../layouts/GlobalLayout.astro';
 
 <head>
 	<title>Sign Up | Alvana.io</title>
+	<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 
 <GlobalLayout underConstruction={false}>
@@ -26,6 +27,8 @@ import GlobalLayout from '../layouts/GlobalLayout.astro';
 					<span>Confirm password</span>
 					<input type="password" name="confirmPassword" required minlength="8" autocomplete="new-password" class="border rounded px-3 py-2" />
 				</label>
+
+				<div class="cf-turnstile" data-sitekey={import.meta.env.PUBLIC_TURNSTILE_SITE_KEY}></div>
 
 				<p id="signup-error" class="text-red-600 hidden"></p>
 				<p id="signup-success" class="text-green-700 hidden"></p>
@@ -65,11 +68,25 @@ import GlobalLayout from '../layouts/GlobalLayout.astro';
 			return;
 		}
 
+		const captchaToken = String(data.get('cf-turnstile-response') ?? '');
+
+		if (!captchaToken) {
+			errorEl.textContent = 'Please complete the verification challenge.';
+			errorEl.classList.remove('hidden');
+			return;
+		}
+
 		const { data: signUpData, error } = await supabase.auth.signUp({
 			email,
 			password,
-			options: { emailRedirectTo: `${window.location.origin}/account` },
+			options: {
+				emailRedirectTo: `${window.location.origin}/account`,
+				captchaToken,
+			},
 		});
+
+		// @ts-ignore - loaded globally via the Turnstile script tag
+		turnstile?.reset();
 
 		if (error) {
 			errorEl.textContent = error.message;
