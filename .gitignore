@@ -1,0 +1,37 @@
+# build files
+/dist
+
+# generated types
+.astro/
+CLAUDE.md
+
+# dependencies
+node_modules/
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# environment variables
+.env
+.env.production
+SupaBase_PW
+Deployment_Steps
+
+# macOS-specific files
+.DS_Store
+
+# jetbrains setting folder
+.idea/
+
+# design assets
+design_assets/
+
+# Claude Code local settings
+.claude/
+
+# VS Code
+.vscode/
