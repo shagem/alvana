@@ -1,14 +1,192 @@
 ---
 import GlobalLayout from '../layouts/GlobalLayout.astro';
-import IndexHero from '../components/IndexHero.astro';
 ---
 
 <head>
 	<title>Alvana.io | Coming Soon...</title>
+	<style>
+		#ripple-overlay {
+			position: fixed;
+			inset: 0;
+			z-index: 9999;
+			background: #f5f4f9;
+			pointer-events: none;
+		}
+		#ripple-canvas {
+			display: block;
+			width: 100%;
+			height: 100%;
+		}
+		#page-content {
+			opacity: 0;
+		}
+	</style>
 </head>
 
-<GlobalLayout>
-	<body>
+<div id="ripple-overlay">
+	<canvas id="ripple-canvas"></canvas>
+</div>
 
-	</body>
+<GlobalLayout>
 </GlobalLayout>
+
+<script>
+	import { gsap } from 'gsap';
+
+	const overlay     = document.getElementById('ripple-overlay') as HTMLDivElement;
+	const canvas      = document.getElementById('ripple-canvas')  as HTMLCanvasElement;
+	const pageContent = document.getElementById('page-content')   as HTMLElement;
+	const ctx         = canvas.getContext('2d')!;
+
+	canvas.width  = window.innerWidth;
+	canvas.height = window.innerHeight;
+
+	// ── Simulation grid ───────────────────────────────────────────────────
+	const SCALE = 6;
+	const W = Math.ceil(canvas.width  / SCALE);
+	const H = Math.ceil(canvas.height / SCALE);
+
+	let curr = new Float32Array(W * H);
+	let prev = new Float32Array(W * H);
+
+	function addDrop(cx: number, cy: number, r: number, str: number) {
+		for (let dy = -r; dy <= r; dy++) {
+			for (let dx = -r; dx <= r; dx++) {
+				if (dx * dx + dy * dy <= r * r) {
+					const nx = cx + dx, ny = cy + dy;
+					if (nx >= 0 && nx < W && ny >= 0 && ny < H)
+						prev[ny * W + nx] = str;
+				}
+			}
+		}
+	}
+
+	// Two drops from centre — interference rings
+	const cx0 = Math.floor(W / 2), cy0 = Math.floor(H / 2);
+	addDrop(cx0, cy0, 8, 700);
+	setTimeout(() => addDrop(cx0, cy0, 5, 400), 450);
+
+	// ── Off-screen canvas for rendering ──────────────────────────────────
+	const sim  = document.createElement('canvas');
+	sim.width  = W;
+	sim.height = H;
+	const sctx = sim.getContext('2d')!;
+	const img  = sctx.createImageData(W, H);
+	const px   = img.data;
+
+	// ── Wave step ─────────────────────────────────────────────────────────
+	function step() {
+		for (let y = 1; y < H - 1; y++) {
+			for (let x = 1; x < W - 1; x++) {
+				const i = y * W + x;
+				curr[i] = (prev[i-1] + prev[i+1] + prev[i-W] + prev[i+W]) * 0.5 - curr[i];
+				curr[i] *= 0.980;
+			}
+		}
+		const tmp = curr; curr = prev; prev = tmp;
+	}
+
+	// ── Render: liquid-glass palette ─────────────────────────────────────
+	//
+	// Surface normal → iridescent bilinear color blend:
+	//   TL (gx<0, gy<0) = lavender   TR (gx>0, gy<0) = sky-blue
+	//   BL (gx<0, gy>0) = rose-pink  BR (gx>0, gy>0) = mint
+	//
+	function render() {
+		for (let y = 0; y < H; y++) {
+			for (let x = 0; x < W; x++) {
+				const i = y * W + x;
+				const h = prev[i];
+
+				// Finite-difference gradient (clamped at borders)
+				const hl = x > 0   ? prev[i-1] : h;
+				const hr = x < W-1 ? prev[i+1] : h;
+				const hu = y > 0   ? prev[i-W] : h;
+				const hd = y < H-1 ? prev[i+W] : h;
+				const gx = hr - hl;
+				const gy = hd - hu;
+				const gm = Math.sqrt(gx * gx + gy * gy);
+
+				// Normalised gradient direction → [0,1] weights
+				const gl  = gm + 0.1;
+				const tx  = (gx / gl + 1) * 0.5;   // 0=left … 1=right
+				const ty  = (gy / gl + 1) * 0.5;   // 0=up   … 1=down
+
+				// Bilinear blend of four pastel corners
+				const w00 = (1 - tx) * (1 - ty);   // TL lavender  (215,195,255)
+				const w10 =       tx * (1 - ty);   // TR sky-blue  (195,220,255)
+				const w01 = (1 - tx) *       ty;   // BL rose-pink (255,195,220)
+				const w11 =       tx *       ty;   // BR mint      (195,250,230)
+
+				const irid_r = 215*w00 + 195*w10 + 255*w01 + 195*w11;
+				const irid_g = 195*w00 + 220*w10 + 195*w01 + 250*w11;
+				const irid_b = 255*w00 + 255*w10 + 220*w01 + 230*w11;
+
+				// Iridescence strength: rises with wave gradient, max 45%
+				const tc     = Math.max(-1, Math.min(1, h / 100));
+				const iridSt = Math.min(0.45, gm / 130) * (0.3 + Math.abs(tc) * 0.7);
+
+				// Apple-style off-white base
+				const BR = 245, BG = 244, BB = 249;
+				let r = BR + (irid_r - BR) * iridSt;
+				let g = BG + (irid_g - BG) * iridSt;
+				let b = BB + (irid_b - BB) * iridSt;
+
+				// Specular highlight (light from upper-left) → bright white glint
+				const specDot = Math.max(0, -gx * 0.6 - gy * 0.8);
+				const spec    = Math.pow(specDot / (gm + 1), 4) * Math.min(1, gm / 40);
+				r = r + (255 - r) * spec;
+				g = g + (255 - g) * spec;
+				b = b + (255 - b) * spec;
+
+				// Subtle trough shadow
+				const shadow = Math.max(0, -tc) * 0.07;
+				r *= (1 - shadow);
+				g *= (1 - shadow);
+				b *= (1 - shadow);
+
+				px[i*4+0] = r | 0;
+				px[i*4+1] = g | 0;
+				px[i*4+2] = b | 0;
+				px[i*4+3] = 255;
+			}
+		}
+
+		sctx.putImageData(img, 0, 0);
+		ctx.imageSmoothingEnabled  = true;
+		ctx.imageSmoothingQuality = 'high';
+		ctx.drawImage(sim, 0, 0, canvas.width, canvas.height);
+	}
+
+	// ── Animation loop ────────────────────────────────────────────────────
+	// Fade out once max wave amplitude drops below this threshold
+	const SETTLE_THRESHOLD = 38;
+	const MIN_MS = 1000; // never exit before waves have had time to spread
+	let start: number | null = null;
+	let fading = false;
+
+	function animate(ts: number) {
+		if (start === null) start = ts;
+		step();
+
+		// Track max amplitude during render so we don't loop twice
+		let maxAmp = 0;
+		for (let y = 0; y < H; y++) {
+			for (let x = 0; x < W; x++) {
+				const h = Math.abs(prev[y * W + x]);
+				if (h > maxAmp) maxAmp = h;
+			}
+		}
+		render();
+
+		if (!fading && ts - start > MIN_MS && maxAmp < SETTLE_THRESHOLD) {
+			fading = true;
+			gsap.to(overlay,     { opacity: 0, duration: 0.7, ease: 'power2.inOut', onComplete: () => overlay.remove() });
+			gsap.to(pageContent, { opacity: 1, duration: 0.7, ease: 'power2.out' });
+		} else {
+			requestAnimationFrame(animate);
+		}
+	}
+
+	requestAnimationFrame(animate);
+</script>
