@@ -1,5 +1,16 @@
 ---
 import GlobalLayout from '../layouts/GlobalLayout.astro';
+import avatar1 from '../assets/avatars/avatar-1.svg';
+import avatar2 from '../assets/avatars/avatar-2.svg';
+import avatar3 from '../assets/avatars/avatar-3.svg';
+import avatar4 from '../assets/avatars/avatar-4.svg';
+import avatar5 from '../assets/avatars/avatar-5.svg';
+import avatar6 from '../assets/avatars/avatar-6.svg';
+import avatar7 from '../assets/avatars/avatar-7.svg';
+import avatar8 from '../assets/avatars/avatar-8.svg';
+import avatar9 from '../assets/avatars/avatar-9.svg';
+
+const avatars = [avatar1, avatar2, avatar3, avatar4, avatar5, avatar6, avatar7, avatar8, avatar9];
 ---
 
 <head>
@@ -8,15 +19,69 @@ import GlobalLayout from '../layouts/GlobalLayout.astro';
 
 <GlobalLayout underConstruction={false}>
 	<body>
-		<section class="max-w-sm mx-auto my-24 px-4">
-			<h1 class="text-2xl font-bold mb-6">My Account</h1>
-
+		<section class="max-w-2xl mx-auto my-24 px-4">
 			<div id="account-loading">Loading...</div>
 
-			<div id="account-content" class="hidden flex flex-col gap-4">
+			<div id="account-content" class="hidden flex flex-col gap-8">
+				<div class="flex items-start justify-between">
+					<h1 class="text-2xl font-bold">Edit profile</h1>
+					<img id="account-avatar-preview" src={avatars[0].src} alt="" class="w-16 h-16 rounded-full" />
+				</div>
+
 				<p><span class="font-semibold">Email:</span> <span id="account-email"></span></p>
 
-				<button id="sign-out" class="rounded px-4 py-2 text-white w-fit" style="background-color:#0072ce;">
+				<form id="profile-form" class="flex flex-col gap-6">
+					<div class="flex flex-col gap-2">
+						<span class="font-semibold">Avatar</span>
+						<div id="avatar-picker" class="flex flex-wrap gap-3">
+							{avatars.map((avatar, i) => (
+								<button
+									type="button"
+									class="avatar-option rounded-full p-1 border-2 border-transparent"
+									data-avatar-id={i + 1}
+								>
+									<img src={avatar.src} alt={`Avatar ${i + 1}`} class="w-12 h-12 rounded-full" />
+								</button>
+							))}
+						</div>
+					</div>
+
+					<label class="flex flex-col gap-1">
+						<span class="font-semibold">Username</span>
+						<input type="text" name="username" autocomplete="username" maxlength="24" class="border rounded px-3 py-2" />
+					</label>
+
+					<div class="flex flex-col gap-1 relative">
+						<span class="font-semibold">Location</span>
+						<input
+							type="text"
+							id="location-search"
+							placeholder="Search for a city"
+							autocomplete="off"
+							class="border rounded px-3 py-2"
+						/>
+						<ul
+							id="location-results"
+							class="hidden absolute top-full left-0 right-0 mt-1 bg-white border rounded shadow-lg z-10 max-h-56 overflow-y-auto"
+						>
+						</ul>
+					</div>
+
+					<p id="profile-error" class="text-red-600 hidden"></p>
+					<p id="profile-success" class="text-green-700 hidden"></p>
+
+					<div class="flex gap-3">
+						<button
+							type="submit"
+							class="rounded px-4 py-2 text-white w-fit"
+							style="background-color:#0072ce;"
+						>
+							Save
+						</button>
+					</div>
+				</form>
+
+				<button id="sign-out" class="rounded px-4 py-2 border w-fit" style="border-color:#0072ce; color:#0072ce;">
 					Sign out
 				</button>
 			</div>
@@ -32,6 +97,104 @@ import GlobalLayout from '../layouts/GlobalLayout.astro';
 	const emailEl = document.querySelector<HTMLSpanElement>('#account-email')!;
 	const signOutBtn = document.querySelector<HTMLButtonElement>('#sign-out')!;
 
+	const profileForm = document.querySelector<HTMLFormElement>('#profile-form')!;
+	const profileErrorEl = document.querySelector<HTMLParagraphElement>('#profile-error')!;
+	const profileSuccessEl = document.querySelector<HTMLParagraphElement>('#profile-success')!;
+	const usernameInput = document.querySelector<HTMLInputElement>('input[name="username"]')!;
+
+	const avatarPreview = document.querySelector<HTMLImageElement>('#account-avatar-preview')!;
+	const avatarButtons = document.querySelectorAll<HTMLButtonElement>('.avatar-option');
+	let selectedAvatarId = 1;
+
+	function selectAvatar(id: number) {
+		selectedAvatarId = id;
+		avatarButtons.forEach((btn) => {
+			const isSelected = Number(btn.dataset.avatarId) === id;
+			btn.classList.toggle('border-blue-600', isSelected);
+			btn.style.borderColor = isSelected ? '#0072ce' : 'transparent';
+		});
+		const img = document.querySelector<HTMLImageElement>(
+			`.avatar-option[data-avatar-id="${id}"] img`,
+		);
+		if (img) avatarPreview.src = img.src;
+	}
+
+	avatarButtons.forEach((btn) => {
+		btn.addEventListener('click', () => selectAvatar(Number(btn.dataset.avatarId)));
+	});
+
+	// City search via OpenStreetMap Nominatim (no API key required for a static site).
+	const locationInput = document.querySelector<HTMLInputElement>('#location-search')!;
+	const locationResultsEl = document.querySelector<HTMLUListElement>('#location-results')!;
+	let selectedLocation = '';
+	let searchDebounce: ReturnType<typeof setTimeout> | undefined;
+
+	async function searchCities(query: string) {
+		const url = new URL('https://nominatim.openstreetmap.org/search');
+		url.searchParams.set('format', 'jsonv2');
+		url.searchParams.set('addressdetails', '1');
+		url.searchParams.set('featureType', 'city');
+		url.searchParams.set('q', query);
+
+		const response = await fetch(url, {
+			headers: { Accept: 'application/json' },
+		});
+		if (!response.ok) return [];
+		return response.json();
+	}
+
+	function renderCityResults(results: any[]) {
+		locationResultsEl.innerHTML = '';
+
+		if (results.length === 0) {
+			locationResultsEl.classList.add('hidden');
+			return;
+		}
+
+		for (const result of results) {
+			const city =
+				result.address?.city ?? result.address?.town ?? result.address?.village ?? result.name;
+			const countryCode = result.address?.country_code?.toUpperCase();
+			if (!city || !countryCode) continue;
+
+			const label = `${city}, ${countryCode}`;
+			const li = document.createElement('li');
+			li.textContent = label;
+			li.className = 'px-3 py-2 cursor-pointer hover:bg-gray-100';
+			li.addEventListener('click', () => {
+				selectedLocation = label;
+				locationInput.value = label;
+				locationResultsEl.classList.add('hidden');
+			});
+			locationResultsEl.appendChild(li);
+		}
+
+		locationResultsEl.classList.remove('hidden');
+	}
+
+	locationInput.addEventListener('input', () => {
+		selectedLocation = '';
+		clearTimeout(searchDebounce);
+
+		const query = locationInput.value.trim();
+		if (query.length < 2) {
+			locationResultsEl.classList.add('hidden');
+			return;
+		}
+
+		searchDebounce = setTimeout(async () => {
+			const results = await searchCities(query);
+			renderCityResults(results);
+		}, 300);
+	});
+
+	document.addEventListener('click', (e) => {
+		if (!(e.target instanceof Node)) return;
+		if (!locationInput.contains(e.target) && !locationResultsEl.contains(e.target)) {
+			locationResultsEl.classList.add('hidden');
+		}
+	});
+
 	const {
 		data: { session },
 	} = await supabase.auth.getSession();
@@ -40,9 +203,59 @@ import GlobalLayout from '../layouts/GlobalLayout.astro';
 		window.location.href = '/login';
 	} else {
 		emailEl.textContent = session.user.email ?? '';
+
+		const { data: profile, error: profileError } = await supabase
+			.from('profiles')
+			.select('username, location, avatar_id')
+			.eq('id', session.user.id)
+			.single();
+
+		if (profile) {
+			usernameInput.value = profile.username ?? '';
+			selectedLocation = profile.location ?? '';
+			locationInput.value = profile.location ?? '';
+			selectAvatar(profile.avatar_id ?? 1);
+		} else if (profileError) {
+			profileErrorEl.textContent = 'Could not load your profile details.';
+			profileErrorEl.classList.remove('hidden');
+		}
+
 		loadingEl.classList.add('hidden');
 		contentEl.classList.remove('hidden');
 	}
+
+	const USERNAME_PATTERN = /^[a-zA-Z0-9_]{3,24}$/;
+
+	profileForm.addEventListener('submit', async (e) => {
+		e.preventDefault();
+		profileErrorEl.classList.add('hidden');
+		profileSuccessEl.classList.add('hidden');
+
+		const data = new FormData(profileForm);
+		const username = String(data.get('username') ?? '').trim() || null;
+		const location = selectedLocation || null;
+
+		if (username && !USERNAME_PATTERN.test(username)) {
+			profileErrorEl.textContent =
+				'Username must be 3-24 characters and can only contain letters, numbers, and underscores.';
+			profileErrorEl.classList.remove('hidden');
+			return;
+		}
+
+		const { error } = await supabase
+			.from('profiles')
+			.update({ username, location, avatar_id: selectedAvatarId })
+			.eq('id', session!.user.id);
+
+		if (error) {
+			profileErrorEl.textContent = error.message;
+			profileErrorEl.classList.remove('hidden');
+			return;
+		}
+
+		profileSuccessEl.textContent = 'Profile updated.';
+		profileSuccessEl.classList.remove('hidden');
+	});
 
 	signOutBtn.addEventListener('click', async () => {
 		await supabase.auth.signOut();
