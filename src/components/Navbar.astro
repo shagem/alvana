@@ -28,21 +28,34 @@
 <!-- Slide-out panel -->
 <aside
     id="nav-menu-panel"
-    class="fixed inset-y-0 left-0 z-40 w-72 max-w-[80vw] -translate-x-full bg-white shadow-xl transition-transform duration-300 ease-out"
+    class="fixed inset-y-0 left-0 z-40 w-[500px] max-w-[80vw] -translate-x-full bg-white shadow-xl transition-transform duration-300 ease-out"
     aria-hidden="true"
 >
-    <div class="flex flex-col gap-6 px-8 pt-28">
-        <a href="/" id="nav-home">Home</a>
-        <a href="/login" id="nav-login">Log In</a>
-        <a href="/account" id="nav-account" class="hidden">My Account</a>
+    <div class="pt-8">
+        <div id="nav-profile" class="hidden flex-col items-center gap-2 text-center">
+            <a href="/account" class="flex flex-col items-center border border-gray-300 rounded-full py-4 px-6 hover:shadow-md transition-shadow">
+                <img id="nav-avatar" alt="" class="w-16 h-16 rounded-full" />
+                <span id="nav-username" class="font-semibold"></span>
+            </a>
+        </div>
+
+        <div class="flex flex-col gap-2 px-4 pt-8">
+            <a href="/" id="nav-home" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors">Home</a>
+            <a href="/login" id="nav-login" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors">Log In</a>
+            <a href="/account" id="nav-account" class="hidden items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors">My Account</a>
+        </div>
     </div>
 </aside>
 
 <script>
     import { supabase } from '../lib/supabase';
+    import { avatars } from '../lib/avatars';
 
     const loginLink = document.querySelector<HTMLAnchorElement>('#nav-login');
     const accountLink = document.querySelector<HTMLAnchorElement>('#nav-account');
+    const profileHeader = document.querySelector<HTMLAnchorElement>('#nav-profile');
+    const profileAvatar = document.querySelector<HTMLImageElement>('#nav-avatar');
+    const profileUsername = document.querySelector<HTMLSpanElement>('#nav-username');
 
     const {
         data: { session },
@@ -51,6 +64,21 @@
     if (session) {
         loginLink?.classList.add('hidden');
         accountLink?.classList.remove('hidden');
+        accountLink?.classList.add('flex');
+        profileHeader?.classList.remove('hidden');
+        profileHeader?.classList.add('flex');
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('username, avatar_id')
+            .eq('id', session.user.id)
+            .single();
+
+        if (profile && profileAvatar && profileUsername) {
+            const avatar = avatars[(profile.avatar_id ?? 1) - 1] ?? avatars[0];
+            profileAvatar.src = avatar.src;
+            profileUsername.textContent = profile.username || 'My Account';
+        }
     }
 
     const toggle = document.querySelector<HTMLButtonElement>('#nav-menu-toggle');

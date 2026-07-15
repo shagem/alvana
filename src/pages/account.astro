@@ -1,16 +1,6 @@
 ---
 import GlobalLayout from '../layouts/GlobalLayout.astro';
-import avatar1 from '../assets/avatars/avatar-1.svg';
-import avatar2 from '../assets/avatars/avatar-2.svg';
-import avatar3 from '../assets/avatars/avatar-3.svg';
-import avatar4 from '../assets/avatars/avatar-4.svg';
-import avatar5 from '../assets/avatars/avatar-5.svg';
-import avatar6 from '../assets/avatars/avatar-6.svg';
-import avatar7 from '../assets/avatars/avatar-7.svg';
-import avatar8 from '../assets/avatars/avatar-8.svg';
-import avatar9 from '../assets/avatars/avatar-9.svg';
-
-const avatars = [avatar1, avatar2, avatar3, avatar4, avatar5, avatar6, avatar7, avatar8, avatar9];
+import { avatars } from '../lib/avatars';
 ---
 
 <head>
@@ -22,64 +12,74 @@ const avatars = [avatar1, avatar2, avatar3, avatar4, avatar5, avatar6, avatar7, 
 		<section class="max-w-2xl mx-auto my-24 px-4">
 			<div id="account-loading">Loading...</div>
 
-			<div id="account-content" class="hidden flex flex-col gap-8">
-				<div class="flex items-start justify-between">
-					<h1 class="text-2xl font-bold">Edit profile</h1>
-					<img id="account-avatar-preview" src={avatars[0].src} alt="" class="w-16 h-16 rounded-full" />
+			<div id="account-content" class="hidden flex flex-col gap-6">
+				<h1 class="text-2xl font-bold">My Account</h1>
+
+				<!-- Profile summary -->
+				<div class="rounded-2xl border shadow-sm p-6 flex items-center gap-4">
+					<img id="account-avatar-preview" src={avatars[0].src} alt="" class="w-20 h-20 rounded-full flex-shrink-0" />
+					<div class="flex flex-col gap-0.5 min-w-0">
+						<span id="summary-username" class="text-lg font-semibold truncate">Unnamed</span>
+						<span id="summary-location" class="text-sm text-gray-500 truncate">No location set</span>
+						<span id="account-email" class="text-sm text-gray-500 truncate"></span>
+					</div>
 				</div>
 
-				<p><span class="font-semibold">Email:</span> <span id="account-email"></span></p>
+				<!-- Edit form -->
+				<div class="rounded-2xl border shadow-sm p-6">
+					<h2 class="text-lg font-semibold mb-6">Edit profile</h2>
 
-				<form id="profile-form" class="flex flex-col gap-6">
-					<div class="flex flex-col gap-2">
-						<span class="font-semibold">Avatar</span>
-						<div id="avatar-picker" class="flex flex-wrap gap-3">
-							{avatars.map((avatar, i) => (
-								<button
-									type="button"
-									class="avatar-option rounded-full p-1 border-2 border-transparent"
-									data-avatar-id={i + 1}
-								>
-									<img src={avatar.src} alt={`Avatar ${i + 1}`} class="w-12 h-12 rounded-full" />
-								</button>
-							))}
+					<form id="profile-form" class="flex flex-col gap-6">
+						<div class="flex flex-col gap-2">
+							<span class="font-semibold">Avatar</span>
+							<div id="avatar-picker" class="flex flex-wrap gap-4">
+								{avatars.map((avatar, i) => (
+									<button
+										type="button"
+										class="avatar-option rounded-full p-1 ring-2 ring-transparent ring-offset-2 hover:scale-105 transition-transform"
+										data-avatar-id={i + 1}
+									>
+										<img src={avatar.src} alt={`Avatar ${i + 1}`} class="w-14 h-14 rounded-full" />
+									</button>
+								))}
+							</div>
 						</div>
-					</div>
 
-					<label class="flex flex-col gap-1">
-						<span class="font-semibold">Username</span>
-						<input type="text" name="username" autocomplete="username" maxlength="24" class="border rounded px-3 py-2" />
-					</label>
+						<label class="flex flex-col gap-1">
+							<span class="font-semibold">Username</span>
+							<input type="text" name="username" autocomplete="username" maxlength="24" class="border rounded px-3 py-2" />
+						</label>
 
-					<div class="flex flex-col gap-1 relative">
-						<span class="font-semibold">Location</span>
-						<input
-							type="text"
-							id="location-search"
-							placeholder="Search for a city"
-							autocomplete="off"
-							class="border rounded px-3 py-2"
-						/>
-						<ul
-							id="location-results"
-							class="hidden absolute top-full left-0 right-0 mt-1 bg-white border rounded shadow-lg z-10 max-h-56 overflow-y-auto"
-						>
-						</ul>
-					</div>
+						<div class="flex flex-col gap-1 relative">
+							<span class="font-semibold">Location</span>
+							<input
+								type="text"
+								id="location-search"
+								placeholder="Search for a city"
+								autocomplete="off"
+								class="border rounded px-3 py-2"
+							/>
+							<ul
+								id="location-results"
+								class="hidden absolute top-full left-0 right-0 mt-1 bg-white border rounded shadow-lg z-10 max-h-56 overflow-y-auto"
+							>
+							</ul>
+						</div>
 
-					<p id="profile-error" class="text-red-600 hidden"></p>
-					<p id="profile-success" class="text-green-700 hidden"></p>
+						<p id="profile-error" class="text-red-600 hidden"></p>
+						<p id="profile-success" class="text-green-700 hidden"></p>
 
-					<div class="flex gap-3">
-						<button
-							type="submit"
-							class="rounded px-4 py-2 text-white w-fit"
-							style="background-color:#0072ce;"
-						>
-							Save
-						</button>
-					</div>
-				</form>
+						<div class="flex gap-3">
+							<button
+								type="submit"
+								class="rounded px-4 py-2 text-white w-fit"
+								style="background-color:#0072ce;"
+							>
+								Save
+							</button>
+						</div>
+					</form>
+				</div>
 
 				<button id="sign-out" class="rounded px-4 py-2 border w-fit" style="border-color:#0072ce; color:#0072ce;">
 					Sign out
@@ -96,6 +96,8 @@ const avatars = [avatar1, avatar2, avatar3, avatar4, avatar5, avatar6, avatar7, 
 	const contentEl = document.querySelector<HTMLDivElement>('#account-content')!;
 	const emailEl = document.querySelector<HTMLSpanElement>('#account-email')!;
 	const signOutBtn = document.querySelector<HTMLButtonElement>('#sign-out')!;
+	const summaryUsernameEl = document.querySelector<HTMLSpanElement>('#summary-username')!;
+	const summaryLocationEl = document.querySelector<HTMLSpanElement>('#summary-location')!;
 
 	const profileForm = document.querySelector<HTMLFormElement>('#profile-form')!;
 	const profileErrorEl = document.querySelector<HTMLParagraphElement>('#profile-error')!;
@@ -110,8 +112,7 @@ const avatars = [avatar1, avatar2, avatar3, avatar4, avatar5, avatar6, avatar7, 
 		selectedAvatarId = id;
 		avatarButtons.forEach((btn) => {
 			const isSelected = Number(btn.dataset.avatarId) === id;
-			btn.classList.toggle('border-blue-600', isSelected);
-			btn.style.borderColor = isSelected ? '#0072ce' : 'transparent';
+			btn.classList.toggle('ring-blue-600', isSelected);
 		});
 		const img = document.querySelector<HTMLImageElement>(
 			`.avatar-option[data-avatar-id="${id}"] img`,
@@ -119,11 +120,21 @@ const avatars = [avatar1, avatar2, avatar3, avatar4, avatar5, avatar6, avatar7, 
 		if (img) avatarPreview.src = img.src;
 	}
 
+	function updateSummaryUsername(username: string) {
+		summaryUsernameEl.textContent = username.trim() || 'Unnamed';
+	}
+
+	function updateSummaryLocation(location: string) {
+		summaryLocationEl.textContent = location.trim() || 'No location set';
+	}
+
 	avatarButtons.forEach((btn) => {
 		btn.addEventListener('click', () => selectAvatar(Number(btn.dataset.avatarId)));
 	});
 
-	// City search via OpenStreetMap Nominatim (no API key required for a static site).
+	usernameInput.addEventListener('input', () => updateSummaryUsername(usernameInput.value));
+
+	// City search via OpenStreetMap Nominatim.
 	const locationInput = document.querySelector<HTMLInputElement>('#location-search')!;
 	const locationResultsEl = document.querySelector<HTMLUListElement>('#location-results')!;
 	let selectedLocation = '';
@@ -164,6 +175,7 @@ const avatars = [avatar1, avatar2, avatar3, avatar4, avatar5, avatar6, avatar7, 
 			li.addEventListener('click', () => {
 				selectedLocation = label;
 				locationInput.value = label;
+				updateSummaryLocation(label);
 				locationResultsEl.classList.add('hidden');
 			});
 			locationResultsEl.appendChild(li);
@@ -174,6 +186,7 @@ const avatars = [avatar1, avatar2, avatar3, avatar4, avatar5, avatar6, avatar7, 
 
 	locationInput.addEventListener('input', () => {
 		selectedLocation = '';
+		updateSummaryLocation('');
 		clearTimeout(searchDebounce);
 
 		const query = locationInput.value.trim();
@@ -215,6 +228,8 @@ const avatars = [avatar1, avatar2, avatar3, avatar4, avatar5, avatar6, avatar7, 
 			selectedLocation = profile.location ?? '';
 			locationInput.value = profile.location ?? '';
 			selectAvatar(profile.avatar_id ?? 1);
+			updateSummaryUsername(profile.username ?? '');
+			updateSummaryLocation(profile.location ?? '');
 		} else if (profileError) {
 			profileErrorEl.textContent = 'Could not load your profile details.';
 			profileErrorEl.classList.remove('hidden');
